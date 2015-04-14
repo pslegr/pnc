@@ -11,6 +11,7 @@ import org.jboss.pnc.auth.AuthenticationProvider;
 import org.jboss.pnc.auth.ExternalAuthentication;
 import org.jboss.pnc.common.util.IoUtils;
 import org.jboss.pnc.integration.matchers.JsonMatcher;
+import org.jboss.pnc.integration.Utils.AuthResource;
 import org.jboss.pnc.integration.deployments.Deployments;
 import org.jboss.pnc.test.category.ContainerTest;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
@@ -43,6 +44,7 @@ public class ProductVersionRestTest {
     private static int newProductVersionId;
     
     private static AuthenticationProvider authProvider;
+    private static String access_token =  "no-auth";
 
 
     @Deployment(testable = false)
@@ -55,9 +57,12 @@ public class ProductVersionRestTest {
     @Before
     public void prepareData() {
         try {
-            InputStream is = this.getClass().getResourceAsStream("/keycloak.json");
-            ExternalAuthentication ea = new ExternalAuthentication(is);
-            authProvider = ea.authenticate(System.getenv("PNC_EXT_OAUTH_USERNAME"), System.getenv("PNC_EXT_OAUTH_PASSWORD"));
+            if(AuthResource.authEnabled()) {
+                InputStream is = this.getClass().getResourceAsStream("/keycloak.json");
+                ExternalAuthentication ea = new ExternalAuthentication(is);
+                authProvider = ea.authenticate(System.getenv("PNC_EXT_OAUTH_USERNAME"), System.getenv("PNC_EXT_OAUTH_PASSWORD"));
+                access_token = authProvider.getTokenString();
+            }
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -67,7 +72,7 @@ public class ProductVersionRestTest {
     @Test
     @InSequence(1)
     public void prepareProductId() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when().get(PRODUCT_REST_ENDPOINT).then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("[0].id", value -> productId = Integer.valueOf(value)));
     }
@@ -75,7 +80,7 @@ public class ProductVersionRestTest {
     @Test
     @InSequence(2)
     public void prepareProductVersionId() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format(PRODUCT_VERSION_REST_ENDPOINT, productId)).then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("[0].id", value -> productVersionId = Integer.valueOf(value)));
@@ -84,7 +89,7 @@ public class ProductVersionRestTest {
     @Test
     @InSequence(3)
     public void shouldGetSpecificProductVersion() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format(PRODUCT_VERSION_SPECIFIC_REST_ENDPOINT, productId, productVersionId)).then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("id"));
@@ -95,7 +100,7 @@ public class ProductVersionRestTest {
     public void shouldCreateNewProductVersion() throws IOException {
         String rawJson = loadJsonFromFile("productVersion");
 
-        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .body(rawJson).contentType(ContentType.JSON).port(getHttpPort()).when()
                 .post(String.format(PRODUCT_VERSION_REST_ENDPOINT, productId));
         Assertions.assertThat(response.statusCode()).isEqualTo(201);
@@ -122,7 +127,7 @@ public class ProductVersionRestTest {
 
         logger.info("### newProductVersionId: " + newProductVersionId);
 
-        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format(PRODUCT_VERSION_SPECIFIC_REST_ENDPOINT, productId, newProductVersionId));
 
@@ -137,13 +142,13 @@ public class ProductVersionRestTest {
 
         logger.info("### rawJson: " + response.body().jsonPath().prettyPrint());
 
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .body(rawJson).contentType(ContentType.JSON).port(getHttpPort()).when()
                 .put(String.format(PRODUCT_VERSION_SPECIFIC_REST_ENDPOINT, productId, newProductVersionId)).then()
                 .statusCode(200);
 
         // Reading updated resource
-        Response updateResponse = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        Response updateResponse = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format(PRODUCT_VERSION_SPECIFIC_REST_ENDPOINT, productId, newProductVersionId));
 

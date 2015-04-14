@@ -1,26 +1,24 @@
 package org.jboss.pnc.auth;
 
-import static org.junit.Assert.assertNotNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.junit.Assert;
 import org.junit.Test;
-import org.keycloak.representations.AccessToken;
 
 public class ExternalAuthenticationTest {
 
     @Test
-    public void testDAG() {
+    public void testDirectAccessGrant() {
         try {
             InputStream is = this.getClass().getResourceAsStream("/keycloak.json");
             ExternalAuthentication ea = new ExternalAuthentication(is);
             AuthenticationProvider provider = ea.authenticate(System.getenv("PNC_EXT_OAUTH_USERNAME"), System.getenv("PNC_EXT_OAUTH_PASSWORD"));
-            assertNotNull(provider);
-            assertNotNull(provider.getPrefferedUserName());
+            Assert.assertNotNull(provider);
+            Assert.assertNotNull(provider.getPrefferedUserName());
             
         } catch (IOException e) {
-            // do nothing
+            Assert.fail();
         }
     }
 

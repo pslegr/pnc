@@ -11,6 +11,7 @@ import org.jboss.pnc.auth.AuthenticationProvider;
 import org.jboss.pnc.auth.ExternalAuthentication;
 import org.jboss.pnc.common.util.IoUtils;
 import org.jboss.pnc.integration.matchers.JsonMatcher;
+import org.jboss.pnc.integration.Utils.AuthResource;
 import org.jboss.pnc.integration.deployments.Deployments;
 import org.jboss.pnc.test.category.ContainerTest;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
@@ -47,6 +48,7 @@ public class RestTest {
     private static final String PROJECT_REST_ENDPOINT_SPECIFIC = PROJECT_REST_ENDPOINT + "%d";
     
     private static AuthenticationProvider authProvider;
+    private static String access_token =  "no-auth";
 
 
     @Deployment(testable = false)
@@ -59,9 +61,12 @@ public class RestTest {
     @Before
     public void prepareData() {
         try {
-            InputStream is = this.getClass().getResourceAsStream("/keycloak.json");
-            ExternalAuthentication ea = new ExternalAuthentication(is);
-            authProvider = ea.authenticate(System.getenv("PNC_EXT_OAUTH_USERNAME"), System.getenv("PNC_EXT_OAUTH_PASSWORD"));
+            if(AuthResource.authEnabled()) {
+                InputStream is = this.getClass().getResourceAsStream("/keycloak.json");
+                ExternalAuthentication ea = new ExternalAuthentication(is);
+                authProvider = ea.authenticate(System.getenv("PNC_EXT_OAUTH_USERNAME"), System.getenv("PNC_EXT_OAUTH_PASSWORD"));
+                access_token = authProvider.getTokenString();
+            }
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -72,7 +77,7 @@ public class RestTest {
     @Test
     @InSequence(0)
     public void shouldGetAllProducts() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when().get("/pnc-rest/rest/product").then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("[0].id", value -> productId = Integer.valueOf(value)));
     }
@@ -80,7 +85,7 @@ public class RestTest {
     @Test
     @InSequence(1)
     public void shouldGetSpecificProduct() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format("/pnc-rest/rest/product/%d", productId)).then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("id"));
@@ -89,7 +94,7 @@ public class RestTest {
     @Test
     @InSequence(2)
     public void shouldGetAllProductsVersions() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format("/pnc-rest/rest/product/%d/version", productId)).then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("[0].id", value -> productVersionId = Integer.valueOf(value)));
@@ -98,7 +103,7 @@ public class RestTest {
     @Test
     @InSequence(3)
     public void shouldSpecificProductsVersions() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format("/pnc-rest/rest/product/%d/version/%d", productId, productVersionId)).then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("id"));
@@ -107,7 +112,7 @@ public class RestTest {
     @Test
     @InSequence(4)
     public void shouldGetFirstProject() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get("/pnc-rest/rest/project/").then()
                 .statusCode(200).body(JsonMatcher.containsJsonAttribute("[0].id", value -> projectId = Integer.valueOf(value)));
@@ -116,7 +121,7 @@ public class RestTest {
     @Test
     @InSequence(5)
     public void shouldGetSpecificProject() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format("/pnc-rest/rest/project/%d", projectId)).then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("id"));
@@ -125,7 +130,7 @@ public class RestTest {
     @Test
     @InSequence(6)
     public void shouldGetAllUsers() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when().get("/pnc-rest/rest/user").then().statusCode(200)
                 .body(JsonMatcher.containsJsonAttribute("[0].id", value -> userId = Integer.valueOf(value)));
     }
@@ -133,7 +138,7 @@ public class RestTest {
     @Test
     @InSequence(7)
     public void shouldGetSpecificUser() {
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when().get(String.format("/pnc-rest/rest/user/%d", userId))
                 .then().statusCode(200).body(JsonMatcher.containsJsonAttribute("id"));
     }
@@ -144,7 +149,7 @@ public class RestTest {
         try {
             String rawJson = IoUtils.readFileOrResource("user", "user.json", getClass().getClassLoader());
             logger.info(rawJson);
-            given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+            given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .body(rawJson).contentType(ContentType.JSON).port(getHttpPort()).when().post("/pnc-rest/rest/user/").then()
                     .statusCode(201);
 
@@ -160,7 +165,7 @@ public class RestTest {
             String rawJson = IoUtils.readFileOrResource("product", "product.json", getClass().getClassLoader());
             logger.info(rawJson);
 
-            Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+            Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .body(rawJson).contentType(ContentType.JSON).port(getHttpPort()).when()
                     .post("/pnc-rest/rest/product/");
             Assertions.assertThat(response.statusCode()).isEqualTo(201);
@@ -184,7 +189,7 @@ public class RestTest {
 
         logger.info("### newProductId: " + newProductId);
 
-        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format("/pnc-rest/rest/product/%d", newProductId));
 
@@ -200,12 +205,12 @@ public class RestTest {
 
         logger.info("### rawJson: " + response.body().jsonPath().prettyPrint());
 
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .body(rawJson).contentType(ContentType.JSON).port(getHttpPort()).when()
                 .put(String.format("/pnc-rest/rest/product/%d", newProductId)).then().statusCode(200);
 
         // Reading updated resource
-        Response updateResponse = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        Response updateResponse = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format("/pnc-rest/rest/product/%d", newProductId));
 
@@ -240,7 +245,7 @@ public class RestTest {
     public void shouldUpdateProject() {
         logger.info("### newProjectId: " + newProjectId);
 
-        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        Response response = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format(PROJECT_REST_ENDPOINT_SPECIFIC, newProjectId));
 
@@ -255,12 +260,12 @@ public class RestTest {
 
         logger.info("### rawJson: " + rawJson);
 
-        given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .body(rawJson).contentType(ContentType.JSON).port(getHttpPort()).when()
                 .put(String.format(PROJECT_REST_ENDPOINT_SPECIFIC, newProjectId)).then().statusCode(200);
 
         // Reading updated resource
-        Response updateResponse = given().header("Accept", "application/json").header("Authorization", "Bearer " + authProvider.getTokenString())
+        Response updateResponse = given().header("Accept", "application/json").header("Authorization", "Bearer " + access_token)
                     .contentType(ContentType.JSON).port(getHttpPort()).when()
                 .get(String.format(PROJECT_REST_ENDPOINT_SPECIFIC, newProjectId));
 
