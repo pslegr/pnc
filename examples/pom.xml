@@ -48,11 +48,13 @@
   
   <modules>
     <module>oauth-client</module>
+    <module>ws-java-client-with-auth</module>
   </modules>
   
   <properties>
     <version.org.apache.httpcomponents.httpclient>4.3.6</version.org.apache.httpcomponents.httpclient>
     <version.org.jboss.logging>3.1.3.GA</version.org.jboss.logging>
+    <version.javax.ws>7.0</version.javax.ws>
   </properties>
   
   <dependencyManagement>
@@ -61,6 +63,11 @@
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
         <version>${version.org.apache.httpcomponents.httpclient}</version>
+      </dependency>
+      <dependency>
+        <groupId>javax</groupId>
+        <artifactId>javaee-web-api</artifactId>
+        <version>${version.javax.ws}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -72,5 +79,4 @@
         <version>${version.org.jboss.logging}</version>
       </dependency>
   </dependencies>
-  
 </project>

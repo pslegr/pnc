@@ -51,6 +51,18 @@
     
     <security-constraint>
        <web-resource-collection>
+         <web-resource-name>Restrict GET on Websockets endpoints</web-resource-name>
+         <url-pattern>/ws/*</url-pattern>
+         <http-method>GET</http-method>
+       </web-resource-collection>
+        <auth-constraint>
+            <role-name>admin</role-name>
+        </auth-constraint>
+    </security-constraint>
+    
+    
+    <security-constraint>
+       <web-resource-collection>
          <web-resource-name>Authorized users Access</web-resource-name>
          <url-pattern>/rest/*</url-pattern>
          <http-method>DELETE</http-method>
